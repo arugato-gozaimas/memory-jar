@@ -1,121 +1,128 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { HeartCursor } from './components/HeartCursor'
+import { JarScene } from './components/JarScene'
+import {
+  MemoryReveal,
+  type RevealPhase,
+} from './components/MemoryReveal'
+import { useMemories } from './hooks/useMemories'
+import { shuffleMemories } from './lib/shuffle'
+import type { Memory } from './types'
+
+function StatusMessage({ children }: { children: ReactNode }) {
+  return (
+    <p className="max-w-xs px-6 text-center font-message text-sm italic leading-relaxed text-stone-400/80">
+      {children}
+    </p>
+  )
+}
 
 function App() {
-  const [count, setCount] = useState(0)
+  const { memories, isLoading, error } = useMemories()
+  const ready = !isLoading && !error && memories.length > 0
+
+  /** Shuffled once per load / restart — never persisted. */
+  const [deck, setDeck] = useState<Memory[]>([])
+  /** Next index to draw; memories at [0, nextIndex) have been shown. */
+  const [nextIndex, setNextIndex] = useState(0)
+  const [activeMemory, setActiveMemory] = useState<Memory | null>(null)
+  const [phase, setPhase] = useState<RevealPhase | null>(null)
+
+  // Shuffle the full deck once memories finish loading.
+  useEffect(() => {
+    if (isLoading || error || memories.length === 0) return
+    setDeck(shuffleMemories(memories))
+    setNextIndex(0)
+    setActiveMemory(null)
+    setPhase(null)
+  }, [isLoading, error, memories])
+
+  const jarBusy = phase === 'opening' || phase === 'open' || phase === 'closing'
+  const exhausted =
+    ready && deck.length > 0 && nextIndex >= deck.length && !jarBusy
+  const jarInteractive = ready && !jarBusy
+
+  const refillJar = useCallback(() => {
+    setDeck(shuffleMemories(memories))
+    setNextIndex(0)
+  }, [memories])
+
+  const handleJarClick = useCallback(() => {
+    if (!jarInteractive) return
+
+    if (exhausted) {
+      refillJar()
+      return
+    }
+
+    const next = deck[nextIndex]
+    if (!next) return
+
+    setNextIndex((index) => index + 1)
+    setActiveMemory(next)
+    setPhase('opening')
+  }, [jarInteractive, exhausted, refillJar, deck, nextIndex])
+
+  const handleCloseRequest = useCallback(() => {
+    if (phase !== 'open') return
+    setPhase('closing')
+  }, [phase])
+
+  const handleOpened = useCallback(() => {
+    setPhase('open')
+  }, [])
+
+  const handleClosed = useCallback(() => {
+    setActiveMemory(null)
+    setPhase(null)
+  }, [])
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
+    <main className="relative flex min-h-dvh w-full items-center justify-center bg-jar-bg px-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+      <HeartCursor />
+
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden"
+      >
+        <div className="h-[min(55vw,360px)] w-[min(55vw,360px)] translate-y-8 rounded-full bg-jar-glow/[0.07] blur-3xl" />
+      </div>
+
+      <div className="relative z-10 flex h-[100dvh] w-full max-w-lg flex-col items-center justify-center overflow-hidden px-2 sm:px-4">
+        <JarScene
+          interactive={jarInteractive}
+          empty={exhausted}
+          showHint={!exhausted && jarInteractive && !activeMemory}
+          onJarClick={jarInteractive ? handleJarClick : undefined}
+        />
+
+        {exhausted && (
+          <p className="mt-1 max-w-[18rem] text-center font-message text-[0.875rem] leading-relaxed text-stone-400/85">
+            You&apos;ve opened every memory. ❤️
           </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+        )}
 
-      <div className="ticks"></div>
+        {isLoading && (
+          <div className="mt-2">
+            <StatusMessage>Gathering memories…</StatusMessage>
+          </div>
+        )}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        {!isLoading && error && (
+          <div className="mt-2">
+            <StatusMessage>{error}</StatusMessage>
+          </div>
+        )}
+      </div>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <MemoryReveal
+        memory={activeMemory}
+        phase={phase}
+        onCloseRequest={handleCloseRequest}
+        onOpened={handleOpened}
+        onClosed={handleClosed}
+      />
+    </main>
   )
 }
 
