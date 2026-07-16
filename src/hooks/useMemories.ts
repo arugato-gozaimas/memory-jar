@@ -1,16 +1,41 @@
 import { useEffect, useState } from 'react'
 import { DEMO_MEMORIES } from '../data/demoMemories'
+import { normalizeMemoryImageUrl } from '../lib/memoryImage'
 import type { Memory } from '../types'
 
 function isMemory(value: unknown): value is Memory {
   if (!value || typeof value !== 'object') return false
   const candidate = value as Record<string, unknown>
+  const imageOk =
+    candidate.image === undefined ||
+    candidate.image === null ||
+    typeof candidate.image === 'string'
+  const authorOk =
+    candidate.author === undefined ||
+    candidate.author === null ||
+    typeof candidate.author === 'string'
+
   return (
     typeof candidate.id === 'string' &&
     typeof candidate.message === 'string' &&
-    (candidate.author === undefined || typeof candidate.author === 'string') &&
-    (candidate.image === undefined || typeof candidate.image === 'string')
+    authorOk &&
+    imageOk
   )
+}
+
+function normalizeMemory(raw: Memory): Memory {
+  const image = normalizeMemoryImageUrl(raw.image)
+  const author =
+    typeof raw.author === 'string' && raw.author.trim()
+      ? raw.author.trim()
+      : undefined
+
+  return {
+    id: raw.id,
+    message: raw.message,
+    ...(author ? { author } : {}),
+    ...(image ? { image } : {}),
+  }
 }
 
 export function useMemories() {
@@ -44,7 +69,7 @@ export function useMemories() {
         }
 
         if (!cancelled) {
-          setMemories(data)
+          setMemories(data.map(normalizeMemory))
           setError(null)
           setIsLoading(false)
         }

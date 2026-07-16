@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import type { Memory } from '../types'
 import { PixelCornerSticker } from './PixelCornerSticker'
 
@@ -8,9 +9,16 @@ type MemoryCardProps = {
 }
 
 export function MemoryCard({ memory, contentVisible = true }: MemoryCardProps) {
+  const [imageFailed, setImageFailed] = useState(false)
+  const showImage = Boolean(memory.image) && !imageFailed
+
+  useEffect(() => {
+    setImageFailed(false)
+  }, [memory.id, memory.image])
+
   return (
     <article
-      className="relative w-[min(92vw,26rem)] max-w-full origin-center overflow-hidden px-6 pb-9 pt-11 text-left shadow-[0_24px_48px_rgba(0,0,0,0.45)] sm:px-8 sm:pb-10 sm:pt-12"
+      className="relative w-[min(94vw,36rem)] max-w-full origin-center overflow-hidden px-6 pb-9 pt-11 text-left shadow-[0_24px_48px_rgba(0,0,0,0.45)] sm:px-10 sm:pb-10 sm:pt-12"
       style={{
         background:
           'linear-gradient(165deg, #f7f1e6 0%, #f3ebdd 42%, #ebe2d2 100%)',
@@ -40,17 +48,19 @@ export function MemoryCard({ memory, contentVisible = true }: MemoryCardProps) {
         className="relative min-w-0 max-w-full transition-opacity duration-300"
         style={{ opacity: contentVisible ? 1 : 0 }}
       >
-        {memory.image && (
+        {showImage && memory.image && (
           <figure className="mb-7 max-w-full">
             <img
               src={memory.image}
               alt=""
+              referrerPolicy="no-referrer"
               className="h-auto max-h-56 w-full max-w-full object-cover"
               style={{
                 boxShadow:
                   '0 1px 2px rgba(60,40,20,0.2), 0 8px 16px rgba(60,40,20,0.12)',
                 border: '4px solid #f5efe4',
               }}
+              onError={() => setImageFailed(true)}
             />
           </figure>
         )}

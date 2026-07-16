@@ -46,64 +46,17 @@ Then:
 This replaces manual export entirely. It reads the Sheet directly and serves JSON your app fetches on load — no rebuild needed for new responses.
 
 1. Open the linked Google **Sheet** (not the Form) → **Extensions → Apps Script**.
-2. Delete the default code and paste this in:
+2. Delete the default code and paste the contents of `apps-script/Code.gs` from this repo.
 
-```js
-// Code.gs — deploy as a Web App, "Anyone" access
-function doGet(e) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const rows = data.slice(1);
+**Important:** Form file-upload cells look like Drive links in the Sheet UI, but `getValues()` often only returns the **filename**. The script reads the real hyperlink via `getRichTextValue().getLinkUrl()`.
 
-  const idx = {
-    message: headers.findIndex(h => /memory|thank you|message/i.test(h)),
-    author: headers.findIndex(h => /sign|name/i.test(h)),
-    image: headers.findIndex(h => /photo|image/i.test(h)),
-  };
-
-  const memories = rows
-    .filter(row => idx.message > -1 && row[idx.message] && row[idx.message].toString().trim() !== "")
-    .map((row, i) => {
-      const message = row[idx.message].toString().trim();
-      const author = idx.author > -1 ? row[idx.author].toString().trim() : "";
-      let image;
-
-      if (idx.image > -1 && row[idx.image]) {
-        const cell = row[idx.image].toString();
-        const match = cell.match(/[-\w]{25,}/); // extract Drive file ID from the cell's URL
-        if (match) {
-          const fileId = match[0];
-          try {
-            const file = DriveApp.getFileById(fileId);
-            file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-            image = `https://lh3.googleusercontent.com/d/${fileId}`;
-          } catch (err) {
-            image = undefined; // file missing or inaccessible — skip the image, keep the memory
-          }
-        }
-      }
-
-      return {
-        id: `memory-${i + 1}`,
-        message,
-        author: author || undefined,
-        image,
-      };
-    });
-
-  return ContentService
-    .createTextOutput(JSON.stringify(memories))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-```
-
-1. Click **Deploy → New deployment → Web app**.
+3. Click **Deploy → New deployment → Web app** (or **Manage deployments → ✎ → New version** if updating).
   - **Execute as**: Me
   - **Who has access**: Anyone
-2. Click **Deploy**, then **Authorize access** (it needs Drive permission to make photos viewable — that's expected and safe, it only touches files from this form's folder).
-3. Copy the **Web app URL** it gives you (looks like `https://script.google.com/macros/s/XXXXXXXX/exec`). This is your live data endpoint.
-4. Test it: paste the URL into a browser tab. You should see JSON back (an empty array `[]` is fine before anyone's submitted).
+4. Click **Deploy**, then **Authorize access** (it needs Drive permission to make photos viewable — that's expected and safe, it only touches files from this form's folder).
+5. Copy the **Web app URL** it gives you (looks like `https://script.google.com/macros/s/XXXXXXXX/exec`). This is your live data endpoint.
+6. Test it: paste the URL into a browser tab. You should see JSON with an `"image"` field on rows that have photos.
+7. If images are still missing, open `YOUR_URL?debug=1` — it shows detected column indexes and the raw photo cell value the script actually read.
 
 Keep this URL — you'll give it to Cursor in Prompt A below as an environment variable.
 
