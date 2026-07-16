@@ -104,7 +104,14 @@ export function JarScene({
     : 'Pull a memory from the jar'
 
   return (
-    <div className="flex w-full flex-col items-center justify-center gap-4 sm:gap-5">
+    <div className="flex w-full flex-col items-center justify-center gap-3 sm:gap-4">
+      <p className="max-w-[28rem] px-3 text-center font-message text-[0.95rem] font-medium leading-snug tracking-[0.02em] text-stone-400/80 sm:max-w-[34rem] sm:text-[1.05rem] sm:font-semibold">
+        A jar full of{' '}
+        <span className="italic text-stone-300/90">memories</span> to accompany
+        on your next chapter — with love for{' '}
+        <span className="italic text-stone-300/90">Anuja</span>
+      </p>
+
       <motion.div
         role={canClick ? 'button' : undefined}
         tabIndex={canClick ? 0 : undefined}
@@ -116,8 +123,8 @@ export function JarScene({
         onPointerLeave={handlePointerLeave}
         className={
           canClick
-            ? 'touch-manipulation outline-none focus-visible:ring-1 focus-visible:ring-jar-glow/30 focus-visible:ring-offset-4 focus-visible:ring-offset-jar-bg'
-            : 'touch-manipulation'
+            ? 'relative touch-manipulation outline-none focus-visible:ring-1 focus-visible:ring-jar-glow/30 focus-visible:ring-offset-4 focus-visible:ring-offset-jar-bg'
+            : 'relative touch-manipulation'
         }
         style={
           finePointer

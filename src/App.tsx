@@ -88,7 +88,7 @@ function App() {
         <div className="h-[min(55vw,360px)] w-[min(55vw,360px)] translate-y-8 rounded-full bg-jar-glow/[0.07] blur-3xl" />
       </div>
 
-      <div className="relative z-10 flex h-[100dvh] w-full max-w-lg flex-col items-center justify-center overflow-hidden px-2 sm:px-4">
+      <div className="relative z-10 flex h-[100dvh] w-full max-w-3xl flex-col items-center justify-center overflow-hidden px-2 sm:px-4">
         <JarScene
           interactive={jarInteractive}
           empty={exhausted}
